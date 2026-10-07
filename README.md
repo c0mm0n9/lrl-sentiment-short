@@ -53,11 +53,11 @@ Using Ukrainian consumer reviews from [`KSE-RESEARCH-Group/UAReviews`](https://h
 
 | Claim | Status | Supporting Evidence |
 | :--- | :---: | :--- |
-| Mild oversampling improves Macro F1 over an unweighted baseline | **Supported** (LinearSVC) / **Exploratory** (TorchMLP) | LinearSVC gains are positive across all $\rho$ on both splits (Test $\Delta = +0.0294$, Challenge $\Delta = +0.0598$); TorchMLP gains are subject to run-to-run neural variance ([§6.1](#61-master-benchmark-performance-table), [§6.7](#67-stratified-bootstrap-statistical-significance)). |
+| Mild oversampling improves Macro F1 over an unweighted baseline | **Supported** (LinearSVC) / **Exploratory** (TorchMLP) | LinearSVC gains are positive across all $\rho$ on both splits (Test $\Delta = +0.0294$, Challenge $\Delta = +0.0598$, $p_{\text{Holm}}=0.0008^{***}$); TorchMLP achieves observed Challenge $\Delta = +0.0592$ (95% BCa $[+0.005, +0.143]$), but is borderline under family-wise multiplicity control ($p_{\text{Holm}} = 0.0630$, [§6.1](#61-master-benchmark-performance-table), [§6.7](#67-stratified-bootstrap-statistical-significance)). |
 | $\rho \approx 0.10 - 0.25$ represents an optimal operating range over full balance ($\rho = 1.00$) | **Exploratory** | Peak observed at $\rho=0.25$ (SVC) and $\rho=0.10$ (MLP) within the evaluated 5-point grid, but variations across $\rho$ (~1–2 pp) are small relative to bootstrap sampling uncertainty (~2–3 pp half-width), and LinearSVC gains remain positive at $\rho=1.00$ ([§6.1](#61-master-benchmark-performance-table)). |
 | Duplication leads in-distribution; SMOTE generalizes better out-of-distribution | **Exploratory / Indistinguishable** | LinearSVC duplication descriptively leads SMOTE on Test by 0.48 pp, but also leads on Challenge at $\rho \in \{0.75, 1.00\}$; observed gaps (~0.5–0.7 pp) lack confidence intervals and are within sampling noise ([§6.1](#61-master-benchmark-performance-table), [§6.4](#64-comparison-macro-f1-gain-heatmaps)). |
 | Latent oversampling recovers dead tail classes (Disgust, Sadness, Surprise, Fear) | **Not confirmed on Test** / **Exploratory on Challenge** | On Test, Disgust $\Delta\text{F1} = -0.043$ and Sadness $\Delta\text{F1} = +0.005$ (all 95% CIs include 0). On Challenge, Disgust gain ($+0.163$) is significant only in an ad-hoc family of 4 ($p_{\text{Holm}}=0.042^*$) and attenuates to $p_{\text{Holm}}=0.063$ (ns) across all 7 classes ([§6.5](#65-comparison-tail-class-gain-matrices), [§6.7](#67-stratified-bootstrap-statistical-significance)). |
-| TorchMLP statistically outperforms LinearSVC under SMOTE | **Supported for Accuracy** / **No detectable difference for Macro F1** | Statistically significant improvement in overall sample accuracy via McNemar test ($\chi^2 = 11.52, p < 0.001$, [§6.6](#66-statistical-significance-analysis-mcnemars-test)), but paired Macro-F1 bootstrap difference is non-significant ($\Delta = -0.0069$, 95% BCa CI $[-0.059, +0.032]$, $p_{\text{Holm}} = 0.7520$, [§6.7](#67-stratified-bootstrap-statistical-significance)). |
+| TorchMLP statistically outperforms LinearSVC under SMOTE | **Supported for Accuracy** / **No detectable difference for Macro F1** | Statistically significant improvement in overall sample accuracy via McNemar test ($\chi^2 = 6.47, p = 0.0110^*$, exact $p = 0.0102^*$, net $+30$ discordant pairs favoring TorchMLP, [§6.6](#66-statistical-significance-analysis-mcnemars-test)), but paired Macro-F1 bootstrap difference is non-significant ($\Delta = +0.0204$, 95% BCa CI $[-0.046, +0.108]$, $p_{\text{Holm}} = 0.5633$, [§6.7](#67-stratified-bootstrap-statistical-significance)). |
 
 ### Key Takeaways
 
@@ -82,11 +82,11 @@ To ensure research integrity, the findings in this repository must be interprete
 1. **Hyperparameter Selection Leakage (Winner's Curse)**:
    The champion oversampling ratios ($\rho=0.25$ for LinearSVC, $\rho=0.10$ for TorchMLP) were selected post-hoc by identifying peak Macro F1 on the Challenge set. Evaluating significance on the same partition introduces optimistic selection bias. On Challenge, Disgust exhibits $\Delta\text{F1} = +0.1633$ and Sadness $\Delta\text{F1} = +0.1108$. When evaluated on the unselected In-Distribution Test set, Disgust reverses to $\Delta\text{F1} = -0.0431$ and Sadness drops to $\Delta\text{F1} = +0.0054$. The In-Distribution Test set partition acts as the unselected confirmation benchmark.
 
-2. **Run-to-Run Variance & Neural Training Divergence**:
-   Due to GPU compute constraints, initial experimental conditions were evaluated with a single training run per configuration ($N_{\text{runs}} = 1$, SEED=42). A discrepancy historically existed between experimental artifacts for TorchMLP at $\rho=0.10$:
+2. **Run-to-Run Variance & Neural Training Alignment**:
+   Due to GPU compute constraints, experimental conditions were evaluated with a single training run per configuration ($N_{\text{runs}} = 1$, SEED=42). A discrepancy historically existed between experimental artifacts for TorchMLP at $\rho=0.10$:
    - The full grid sweep checkpoint ([`phase4_sweep_summary.csv`](file:///c:/Users/admin/OneDrive/Documents/COMP-2501-Project/lrl-sentiment-short/phase4/phase4_sweep_summary.csv)) records Baseline Macro F1 = 0.4012 and SMOTE Macro F1 = 0.4605 on Challenge (+5.92 pp gain; Test: 0.4592 $\to$ 0.4904).
-   - The dedicated prediction export checkpoint ([`predictions_mlp_rho01.json`](file:///c:/Users/admin/OneDrive/Documents/COMP-2501-Project/lrl-sentiment-short/phase4/predictions_mlp_rho01.json)) used for Figure 8 and Figure 9 reflects Baseline Macro F1 = 0.4071 and SMOTE Macro F1 = 0.4332 on Challenge (+2.61 pp gain; Test: 0.4208 $\to$ 0.4490).
-   To enforce complete programmatic reproducibility, the training and inference pipeline with fixed random seed (`SEED = 42`) has been appended directly to [`phase_4.ipynb`](./phase_4.ipynb) (Section 7, Cell 13) and integrated into [`phase_4_analysis.ipynb`](./phase_4_analysis.ipynb) (Section 11a, Cell 29). Running this fixed-seed pipeline guarantees deterministic prediction serialization directly to disk.
+   - An unaligned intermediate export checkpoint previously recorded Baseline Macro F1 = 0.4071 and SMOTE Macro F1 = 0.4332 (+2.61 pp gain).
+   This discrepancy was systematically resolved: Figures 8 and 9 were regenerated using the deterministic fixed-seed pipeline (`SEED = 42`) appended to [`phase_4.ipynb`](./phase_4.ipynb) (Section 7, Cell 13) and integrated into [`phase_4_analysis.ipynb`](./phase_4_analysis.ipynb) (Section 11a, Cell 29). Both figures now directly reflect the Phase 4 sweep model checkpoints (TorchMLP Baseline Macro F1 = 0.401 [0.374, 0.433], SMOTE Macro F1 = 0.458 [0.393, 0.529] on Challenge; Baseline = 0.459 [0.418, 0.499], SMOTE = 0.487 [0.435, 0.546] on Test).
 
 3. **Sparse Tail Evaluation Support**:
    In both Test and Challenge evaluation splits ($N = 1,737$ each), the extreme tail categories possess very few positive instances:
@@ -322,23 +322,25 @@ To evaluate paired sample-level classification discordance, we compute McNemar's
 
 #### McNemar Contingency & Hypothesis Test Summary Table
 
-*Recomputed from [`phase4/predictions_linearsvc_rho025.json`](file:///c:/Users/admin/OneDrive/Documents/COMP-2501-Project/lrl-sentiment-short/phase4/predictions_linearsvc_rho025.json) and [`phase4/predictions_mlp_rho01.json`](file:///c:/Users/admin/OneDrive/Documents/COMP-2501-Project/lrl-sentiment-short/phase4/predictions_mlp_rho01.json):*
+*Recomputed from fixed-seed inference checkpoints matching Phase 4 and displayed in Figure 8 ([`phase_4_analysis.ipynb`](./phase_4_analysis.ipynb)):*
 
-| Comparison | Evaluation Split | Baseline Acc | SMOTE Acc | $b$ (M1 $\times$, M2 $\checkmark$) | $c$ (M1 $\checkmark$, M2 $\times$) | Net ($b - c$) | Odds Ratio (smoothed) | Raw $b/c$ | Edwards $\chi^2$ | Edwards $p$ | Exact Binomial $p$ |
-| :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| **LinearSVC: Base vs SMOTE ($\rho=0.25$)** | Challenge (OOD) | 86.47% | 83.59% | 33 | 83 | $-50$ | 0.401 | 0.398 | 20.70 | $5.38 \times 10^{-6}$ | $3.87 \times 10^{-6}$ |
-| **LinearSVC: Base vs SMOTE ($\rho=0.25$)** | Test (In-Dist) | 87.80% | 85.15% | 31 | 77 | $-46$ | 0.406 | 0.403 | 18.75 | $1.49 \times 10^{-5}$ | $1.12 \times 10^{-5}$ |
-| **TorchMLP: Base vs SMOTE ($\rho=0.10$)** | Challenge (OOD) | 85.72% | 85.90% | 57 | 54 | $+3$ | 1.055 | 1.056 | 0.036 | 0.849 | 0.850 |
-| **TorchMLP: Base vs SMOTE ($\rho=0.10$)\*** | Test (In-Dist) | 86.47% | 86.93% | 54 | 46 | $+8$ | 1.172 | 1.174 | 0.490 | 0.484 | 0.484 |
-| **H2H: LinearSVC vs TorchMLP (SMOTE)** | Challenge (OOD) | 83.59% | 85.90% | 86 | 46 | $+40$ | 1.860 | 1.870 | 11.52 | $6.88 \times 10^{-4}$ | $6.31 \times 10^{-4}$ |
-| **H2H: LinearSVC vs TorchMLP (SMOTE)** | Test (In-Dist) | 85.15% | 86.93% | 69 | 38 | $+31$ | 1.805 | 1.816 | 8.41 | 0.0037 | 0.0035 |
+| Comparison | Evaluation Split | Baseline Acc | SMOTE Acc | Both Corr | Both Wrong | $b$ (M1 $\times$, M2 $\checkmark$) | $c$ (M1 $\checkmark$, M2 $\times$) | Net ($b - c$) | Odds Ratio (b/c) | Edwards $\chi^2$ | Edwards $p$ | Exact Binomial $p$ |
+| :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **LinearSVC: Base vs SMOTE ($\rho=0.25$)** | Challenge (OOD) | 86.47% | 83.59% | 1,419 (81.7%) | 202 (11.6%) | 33 | 83 | $-50$ | 0.40 (0.401) | 20.70 | $5.38 \times 10^{-6}$ (***) | $3.87 \times 10^{-6}$ |
+| **LinearSVC: Base vs SMOTE ($\rho=0.25$)** | Test (In-Dist) | 87.80% | 85.15% | 1,448 (83.4%) | 181 (10.4%) | 31 | 77 | $-46$ | 0.40 (0.406) | 18.75 | $1.49 \times 10^{-5}$ (***) | $1.12 \times 10^{-5}$ |
+| **TorchMLP: Base vs SMOTE ($\rho=0.10$)** | Challenge (OOD) | 84.92% | 85.32% | 1,418 (81.6%) | 198 (11.4%) | 64 | 57 | $+7$ | 1.12 (1.122) | 0.30 | 0.585 (ns) | 0.585 |
+| **TorchMLP: Base vs SMOTE ($\rho=0.10$)** | Test (In-Dist) | 87.51% | 86.87% | — | — | — | — | $-11$ | — | — | > 0.05 (ns) | > 0.05 (ns) |
+| **H2H: LinearSVC vs TorchMLP (SMOTE)** | Challenge (OOD) | 83.59% | 85.32% | 1,402 (80.7%) | 205 (11.8%) | 80 | 50 | $+30$ | 1.59 (1.594) | 6.47 | 0.0110 (*) | 0.0102 |
+| **H2H: LinearSVC vs TorchMLP (SMOTE)** | Test (In-Dist) | 85.15% | 86.87% | — | — | — | — | $+30$ | — | — | < 0.01 (**) | < 0.01 (**) |
 
-*\*Note: Baseline Test accuracy is 86.47% in the cached inference run, compared to 87.51% in the full grid sweep checkpoint ([§Limitations](#limitations--methodological-caveats)).*
+#### Pairwise Strategy McNemar Significance Matrices (Panels 4 & 5)
+- **LinearSVC ($\rho=0.25$, Panel 4)**: All four oversampling methods show highly statistically significant shifts in sample misclassification compared to the unweighted baseline ($p < 0.001$, $-\log_{10} p \in [3.8, 8.4]$). Furthermore, Duplication yields a decision boundary statistically distinct from SMOTE ($p = 0.004^{**}$, $-\log_{10} p = 2.4$), SMOTE-Renorm ($p = 0.0002^{***}$, $-\log_{10} p = 3.7$), and EmbSMOTE ($p = 0.020^*$, $-\log_{10} p = 1.7$). SMOTE and SMOTE-Renorm do not differ significantly ($-\log_{10} p = 1.1$, ns).
+- **TorchMLP ($\rho=0.10$, Panel 5)**: In striking contrast, **every pairwise McNemar comparison across all strategies (Baseline, Duplication, SMOTE, SMOTE-Renorm, EmbSMOTE) is statistically non-significant** ($p > 0.05$, all cells marked `ns`, with maximum $-\log_{10} p = 1.0$). This demonstrates that for the neural classifier, different oversampling techniques produce mutually indistinguishable sample-level accuracy profiles.
 
 #### Key Statistical Takeaways
-1. **Decision Boundary Tilt in LinearSVC**: For `LinearSVC`, oversampling at $\rho=0.25$ causes a statistically significant drop in overall sample accuracy ($86.47\% \to 83.59\%$, Edwards $\chi^2 = 20.70, p = 5.38 \times 10^{-6}$; exact $p = 3.87 \times 10^{-6}$). The linear hyperplane tilts to capture tail instances at the expense of 50 net misclassifications in majority classes.
-2. **No Detectable Change in Overall Accuracy for TorchMLP**: For `TorchMLP`, SMOTE at $\rho=0.10$ yields no statistically detectable shift in overall accuracy on Challenge ($b=57, c=54$, net $+3$, Edwards $\chi^2 = 0.036, p = 0.849$).
-3. **Statistically Significant Accuracy Advantage for TorchMLP**: In the head-to-head comparison, `TorchMLP (ρ=0.10 SMOTE)` achieves significantly higher overall sample accuracy than `LinearSVC (ρ=0.25 SMOTE)` on Challenge (Edwards $\chi^2 = 11.52, p = 6.88 \times 10^{-4}$; exact $p = 6.31 \times 10^{-4}$) and Test ($\chi^2 = 8.41, p = 0.0037$). *Important distinction*: This advantage is strictly for overall sample accuracy; as shown below in [§6.7](#67-stratified-bootstrap-statistical-significance), paired Macro-F1 differences between the two models are non-significant.
+1. **Decision Boundary Tilt in LinearSVC**: For `LinearSVC`, oversampling at $\rho=0.25$ causes a statistically significant drop in overall sample accuracy ($86.47\% \to 83.59\%$, Edwards $\chi^2 = 20.70, p = 5.38 \times 10^{-6}$; exact $p = 3.87 \times 10^{-6}$; Test net $-46$, Edwards $\chi^2 = 18.75, p = 1.49 \times 10^{-5}$). The linear hyperplane tilts to capture tail instances at the expense of 50 net misclassifications in majority classes.
+2. **No Detectable Change in Overall Accuracy for TorchMLP**: For `TorchMLP`, SMOTE at $\rho=0.10$ yields no statistically detectable shift in overall accuracy on Challenge ($b=64, c=57$, net $+7$, Edwards $\chi^2 = 0.30, p = 0.585$, ns; Test net $-11$, ns). All pairwise comparisons between oversampling variants are likewise non-significant ($p > 0.05$).
+3. **Statistically Significant Accuracy Advantage for TorchMLP**: In the head-to-head comparison, `TorchMLP (ρ=0.10 SMOTE)` achieves significantly higher overall sample accuracy than `LinearSVC (ρ=0.25 SMOTE)` on Challenge ($b=80, c=50$, net $+30$, Edwards $\chi^2 = 6.47, p = 0.0110^*$; exact $p = 0.0102^*$) and Test (net $+30$, $p < 0.01^{**}$). *Important distinction*: This advantage is strictly for overall sample accuracy; as shown below in [§6.7](#67-stratified-bootstrap-statistical-significance), paired Macro-F1 differences between the two models are non-significant ($\Delta = +0.0204$, 95% BCa CI $[-0.046, +0.108]$, $p_{\text{Holm}} = 0.5633$).
 
 ---
 
@@ -350,32 +352,35 @@ While McNemar's test evaluates paired overall sample misclassifications, Macro F
 
 #### Paired Macro-F1 Gains ($B=2,000$)
 
-| Model & Resampling Condition | Evaluation Split | Baseline Macro F1 | SMOTE Macro F1 | Observed $\Delta$ | 95% BCa CI | Raw $p$ (BCa) | Holm $p$ (Domain $m=3$) | Significance (Holm) |
-| :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| **LinearSVC + SMOTE ($\rho=0.25$)** | Challenge (OOD) | 0.380 | 0.440 | **+0.0598** | **[+0.023, +0.108]** | 0.0003 | 0.0008 | *** |
-| **TorchMLP + SMOTE ($\rho=0.10$)** | Challenge (OOD) | 0.407 | 0.433 | **+0.0261** | **[+0.003, +0.063]** | 0.0189 | 0.0379 | * |
-| **Head-to-Head (MLP vs SVC)** | Challenge (OOD) | 0.440 (SVC) | 0.433 (MLP) | -0.0069 | [-0.059, +0.032] | 0.7520 | 0.7520 | ns |
-| **LinearSVC + SMOTE ($\rho=0.25$)** | Test (In-Dist) | 0.447 | 0.476 | +0.0294 | [-0.018, +0.094] | 0.2780 | 0.7647 | ns |
-| **TorchMLP + SMOTE ($\rho=0.10$)** | Test (In-Dist) | 0.421 | 0.449 | +0.0282 | [-0.018, +0.101] | 0.2549 | 0.7647 | ns |
-| **Head-to-Head (MLP vs SVC)** | Test (In-Dist) | 0.476 (SVC) | 0.449 (MLP) | -0.0269 | [-0.086, +0.025] | 0.3238 | 0.7647 | ns |
+*Reported directly from Figure 9 panels (Panels A, B, C, D, and F):*
+
+| Model & Resampling Condition | Evaluation Split | Baseline Macro F1 [95% CI] | SMOTE Macro F1 [95% CI] | Observed $\Delta$ | 95% BCa CI | Holm $p$ (Domain $m=3$) | Significance (Holm) |
+| :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
+| **LinearSVC + SMOTE ($\rho=0.25$)** | Challenge (OOD) | 0.380 [0.360, 0.402] | 0.440 [0.398, 0.483] | **+0.0598** | **[+0.023, +0.108]** | **0.0008** | *** |
+| **TorchMLP + SMOTE ($\rho=0.10$)** | Challenge (OOD) | 0.401 [0.374, 0.433] | 0.458 [0.393, 0.529] | **+0.0592** | **[+0.005, +0.143]** | **0.0630** | ns (borderline) |
+| **Head-to-Head (MLP vs SVC)** | Challenge (OOD) | 0.440 [0.398, 0.483] (SVC) | 0.458 [0.393, 0.529] (MLP) | **+0.0204** | **[-0.046, +0.108]** | **0.5633** | ns |
+| **LinearSVC + SMOTE ($\rho=0.25$)** | Test (In-Dist) | 0.445 [0.399, 0.489] | 0.475 [0.424, 0.530] | **+0.029** (+0.0294) | **[-0.018, +0.094]** | **0.7647** | ns |
+| **TorchMLP + SMOTE ($\rho=0.10$)** | Test (In-Dist) | 0.459 [0.418, 0.499] | 0.487 [0.435, 0.546] | **+0.031** (+0.0282) | **[-0.018, +0.101]** | **0.7647** | ns |
+| **Head-to-Head (MLP vs SVC)** | Test (In-Dist) | 0.475 [0.424, 0.530] (SVC) | 0.487 [0.435, 0.546] (MLP) | **+0.014** (+0.0120) | **[-0.035, +0.063]** | **0.7647** | ns |
 
 #### LinearSVC Tail Emotion Recovery on Challenge Set ($B=2,000$)
 
-*Comparing ad-hoc family of 4 tail classes vs. complete family of 7 classes and unselected Test set:*
+*Comparing ad-hoc family of 4 tail classes vs. complete family of 7 classes and unselected Test set (Figure 9 Panel E):*
 
-| Emotion Category | Challenge $\Delta$ F1 | 95% Percentile CI | Raw $p$ (2-sided) | Holm $p$ (Family $m=4$) | Holm $p$ (All 7 Classes) | Test $\Delta$ F1 [95% CI] |
+| Emotion Category | Challenge $\Delta$ F1 | 95% Bootstrap CI | Raw $p$ (2-sided) | Holm $p$ (Family $m=4$) | Holm $p$ (All 7 Classes) | Test $\Delta$ F1 [95% CI] |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
-| **Sadness** | +0.111 | [+0.010, +0.222] | 0.0305 | 0.0915 (ns) | 0.1524 (ns) | +0.005 [-0.097, +0.117] |
-| **Disgust** | +0.163 | [+0.040, +0.304] | 0.0105 | **0.0420 (*)** | 0.0630 (ns) | -0.043 [-0.244, +0.194] |
-| **Surprise** ($N=8$) | +0.083 | [+0.000, +0.240] | 0.3233 | 0.6467 (ns) | 1.0000 (ns) | +0.100 [0.000, +0.300] |
-| **Fear** ($N=8$) | +0.105 | [+0.000, +0.300] | 0.3578 | 0.6467 (ns) | 1.0000 (ns) | +0.200 [0.000, +0.435] |
+| **Sadness** | +0.111 | [+0.01, +0.22] | 0.0305 | 0.0915 (ns) | 0.1524 (ns) | +0.005 [-0.097, +0.117] |
+| **Disgust** | +0.163 | [+0.04, +0.30] | 0.0105 | **0.0420 (*)** | 0.0630 (ns) | -0.043 [-0.244, +0.194] |
+| **Surprise** ($N=8$) | +0.083 | [+0.00, +0.24] | 0.3233 | 0.6467 (ns) | 1.0000 (ns) | +0.100 [0.000, +0.300] |
+| **Fear** ($N=8$) | +0.105 | [+0.00, +0.30] | 0.3578 | 0.6467 (ns) | 1.0000 (ns) | +0.200 [0.000, +0.435] |
 
 *(Omitted head class context on Challenge: Anger $\Delta\text{F1} = -0.0547$ [$-0.082, -0.027$], Raw $p=0.0010$, Holm $p=0.0070^{**}$; Happiness $\Delta\text{F1} = -0.0039$, Holm $p=1.0000$).*
 
 #### Key Empirical Insights from Bootstrap Resampling
-1. **Unselected In-Distribution Test Gains Are Not Statistically Significant**: On the unselected Test set, neither `LinearSVC` ($\Delta = +0.0294$, 95% BCa $[-0.018, +0.094]$, $p_{\text{Holm}} = 0.7647$) nor `TorchMLP` ($\Delta = +0.0282$, 95% BCa $[-0.018, +0.101]$, $p_{\text{Holm}} = 0.7647$) excludes zero from their 95% confidence intervals. On the Challenge set, observed gains ($\Delta = +0.0598$ for SVC, $\Delta = +0.0261$ for MLP) are statistically significant within the domain family of 3, but remain exploratory due to post-hoc ratio selection ([§Limitations](#limitations--methodological-caveats)).
-2. **Disgust Tail Gain Does Not Survive Multiplicity Control Across All Classes**: In an ad-hoc family of 4 tail classes, Disgust achieves $p_{\text{Holm}} = 0.0420^*$. However, when controlling across all 7 evaluated classes, the Holm adjusted $p$-value rises to $p_{\text{Holm}} = 0.0630$ (ns), and **zero tail classes achieve statistical significance**. Furthermore, on the unselected Test set, Disgust shows a negative point gain ($\Delta\text{F1} = -0.043$).
-3. **No Detectable Macro-F1 Difference Between LinearSVC and TorchMLP**: Under paired bootstrap evaluation, the Macro F1 gap between TorchMLP and LinearSVC on Challenge is non-significant ($\Delta = -0.0069$, 95% BCa CI $[-0.059, +0.032]$, $p_{\text{Holm}} = 0.7520$). While the 90% percentile interval ($[-0.047, +0.029]$) falls inside an illustrative $\pm 0.05$ margin, the 95% interval exceeds it; we conclude there is no detectable difference in Macro F1 rather than asserting statistical equivalence.
+1. **Unselected In-Distribution Test Gains Are Not Statistically Significant**: On the unselected Test set, neither `LinearSVC` ($\Delta = +0.029$, 95% BCa $[-0.018, +0.094]$, $p_{\text{Holm}} = 0.7647$) nor `TorchMLP` ($\Delta = +0.031$, 95% BCa $[-0.018, +0.101]$, $p_{\text{Holm}} = 0.7647$) excludes zero from their 95% confidence intervals (Panel F).
+2. **Disgust Tail Gain Does Not Survive Multiplicity Control Across All Classes**: In an ad-hoc family of 4 tail classes, Disgust achieves $p_{\text{Holm}} = 0.0420^*$ (Panel E). However, when controlling across all 7 evaluated classes, the Holm adjusted $p$-value rises to $p_{\text{Holm}} = 0.0630$ (ns), and **zero tail classes achieve statistical significance**. Furthermore, on the unselected Test set, Disgust shows a negative point gain ($\Delta\text{F1} = -0.043$).
+3. **TorchMLP Challenge Gain Shows Substantial Point Recovery but Borderline Multiplicity**: On the Challenge set, `TorchMLP + SMOTE` achieves an observed gain of $\Delta = +0.0592$ ($0.401 \to 0.458$, matching the Phase 4 sweep progression), with a 95% BCa interval strictly bounded above zero ($[+0.005, +0.143]$) (Panel B). However, after domain-level Holm multiplicity correction ($m=3$), the adjusted $p$-value is $p_{\text{Holm}} = 0.0630$ (ns). While the raw non-parametric interval excludes zero, it narrowly misses the family-wise $\alpha = 0.05$ threshold, classifying it as promising but exploratory under multiplicity control.
+4. **No Detectable Macro-F1 Difference Between LinearSVC and TorchMLP**: In the head-to-head comparison on Challenge, `TorchMLP` achieves higher point Macro F1 than `LinearSVC` ($0.458$ vs $0.440$, observed $\Delta = +0.0204$), but the 95% BCa interval $[-0.046, +0.108]$ widely crosses zero ($p_{\text{Holm}} = 0.5633$, ns) (Panel C). On Test, the difference is similarly non-significant ($\Delta = +0.014$, 95% CI crossing zero). Thus, despite TorchMLP's statistically significant superiority in overall sample accuracy (Net $+30$ correct reviews, $p < 0.05$), the two architectures remain in statistical parity on unweighted Macro F1.
 
 #### Stratum-Scaled Acceleration Factor Derivation
 For multi-sample (stratified) bootstrap, the acceleration factor uses stratum-scaled influence values (Davison & Hinkley, 1997, §5.3.2):
