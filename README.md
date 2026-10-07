@@ -77,7 +77,7 @@ Using Ukrainian consumer reviews from [`KSE-RESEARCH-Group/UAReviews`](https://h
 
 ## Limitations & Methodological Caveats
 
-To ensure research integrity, the findings in this repository must be interpreted alongside five methodological boundaries:
+To ensure research integrity, the findings in this repository must be interpreted alongside seven methodological boundaries:
 
 1. **Hyperparameter Selection Leakage (Winner's Curse)**:
    The champion oversampling ratios ($\rho=0.25$ for LinearSVC, $\rho=0.10$ for TorchMLP) were selected post-hoc by identifying peak Macro F1 on the Challenge set. Evaluating significance on the same partition introduces optimistic selection bias. On Challenge, Disgust exhibits $\Delta\text{F1} = +0.1633$ and Sadness $\Delta\text{F1} = +0.1108$. When evaluated on the unselected In-Distribution Test set, Disgust reverses to $\Delta\text{F1} = -0.0431$ and Sadness drops to $\Delta\text{F1} = +0.0054$. The In-Distribution Test set partition acts as the unselected confirmation benchmark.
@@ -101,6 +101,12 @@ To ensure research integrity, the findings in this repository must be interprete
 
 5. **Characterization of Evaluation Splits**:
    Class distributions across the Train, Test, and Challenge splits are statistically identical (Happiness $\approx 65.2\%$, Fear $\approx 0.5\%$). Text overlap analysis reveals comparable near-duplicate rates with Train (1.04% for Challenge vs. 1.21% for Test). Rather than an adversarially shifted stress test, the Challenge split constitutes a distinct held-out crawl partition from the `UAReviews` benchmark.
+
+6. **Encoder Latent Topology**:
+   Empirical findings are bound to `Qwen3-Embedding-0.6B` internal topology.
+
+7. **"Frozen Embedding" Constraint**:
+   While computationally efficient, this approach does not evaluate how SMOTE interpolations might interact with dynamic latent spaces during full model fine-tuning or LoRA adaptation.
 
 ---
 
