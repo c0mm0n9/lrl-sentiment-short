@@ -10,6 +10,8 @@ __pycache__/
 # Local data and cache files
 cache/
 lrl_cache/
+phase4/
+predictions_*.json
 *.parquet
 *.npy
 *.pt
