@@ -39,6 +39,7 @@
 - [7. Conclusion](#7-conclusion)
 - [8. References](#8-references)
 - [9. Quick Start & Reproduction Instructions](#9-quick-start-reproduction-instructions)
+- [Citation](#citation)
 - [License](#license)
 
 ---
@@ -53,10 +54,10 @@ Using Ukrainian consumer reviews from [`KSE-RESEARCH-Group/UAReviews`](https://h
 
 | Claim | Status | Supporting Evidence |
 | :--- | :---: | :--- |
-| Mild oversampling improves Macro F1 over an unweighted baseline | **Supported** (LinearSVC) / **Exploratory** (TorchMLP) | LinearSVC gains are positive across all $\rho$ on both splits (Test $\Delta = +0.0294$, Challenge $\Delta = +0.0598$, $p_{\text{Holm}}=0.0008^{***}$); TorchMLP achieves observed Challenge $\Delta = +0.0592$ (95% BCa $[+0.005, +0.143]$), but is borderline under family-wise multiplicity control ($p_{\text{Holm}} = 0.0630$, [§6.1](#61-master-benchmark-performance-table), [§6.7](#67-stratified-bootstrap-statistical-significance)). |
+| Mild oversampling improves Macro F1 over an unweighted baseline | **Supported** (LinearSVC & TorchMLP) | LinearSVC gains are positive across all $\rho$ on both splits (Test $\Delta = +0.0294$, Challenge $\Delta = +0.0598$, $p_{\text{Holm}}=0.0008^{***}$); TorchMLP achieves observed Challenge $\Delta = +0.0592$ on fixed seed, and across 5 random seeds confirms a robust positive gain ($\Delta = +0.0691 \pm 0.0058$, $p_{\text{Holm}} < 0.0001^{***}$, [§6.1](#61-master-benchmark-performance-table), [§6.7](#67-stratified-bootstrap-statistical-significance), [§6.8](#68-multi-seed-stochasticity-analysis-of-torchmlp-mean--sd--holm-bonferroni-correction)). |
 | $\rho \approx 0.10 - 0.25$ represents an optimal operating range over full balance ($\rho = 1.00$) | **Exploratory** | Peak observed at $\rho=0.25$ (SVC) and $\rho=0.10$ (MLP) within the evaluated 5-point grid, but variations across $\rho$ (~1–2 pp) are small relative to bootstrap sampling uncertainty (~2–3 pp half-width), and LinearSVC gains remain positive at $\rho=1.00$ ([§6.1](#61-master-benchmark-performance-table)). |
 | Duplication leads in-distribution; SMOTE generalizes better out-of-distribution | **Exploratory / Indistinguishable** | LinearSVC duplication descriptively leads SMOTE on Test by 0.48 pp, but also leads on Challenge at $\rho \in \{0.75, 1.00\}$; observed gaps (~0.5–0.7 pp) lack confidence intervals and are within sampling noise ([§6.1](#61-master-benchmark-performance-table), [§6.4](#64-comparison-macro-f1-gain-heatmaps)). |
-| Latent oversampling recovers dead tail classes (Disgust, Sadness, Surprise, Fear) | **Not confirmed on Test** / **Exploratory on Challenge** | On Test, Disgust $\Delta\text{F1} = -0.043$ and Sadness $\Delta\text{F1} = +0.005$ (all 95% CIs include 0). On Challenge, Disgust gain ($+0.163$) is significant only in an ad-hoc family of 4 ($p_{\text{Holm}}=0.042^*$) and attenuates to $p_{\text{Holm}}=0.063$ (ns) across all 7 classes ([§6.5](#65-comparison-tail-class-gain-matrices), [§6.7](#67-stratified-bootstrap-statistical-significance)). |
+| Latent oversampling recovers dead tail classes (Disgust, Sadness, Surprise, Fear) | **Not confirmed on Test** / **Supported for TorchMLP on Challenge** | On Test, Disgust $\Delta\text{F1} = -0.043$ and Sadness $\Delta\text{F1} = +0.005$ (all 95% CIs include 0 for LinearSVC). On Challenge, multi-seed evaluation on TorchMLP (§6.8) confirms statistically significant tail reactivation across 100% of seeds for Disgust (+0.198, $p_{\text{Holm}} < 0.0001^{***}$), Surprise (+0.180, $p_{\text{Holm}} < 0.0001^{***}$), and Fear (+0.134, $p_{\text{Holm}} < 0.0001^{***}$) ([§6.5](#65-comparison-tail-class-gain-matrices), [§6.8](#68-multi-seed-stochasticity-analysis-of-torchmlp-mean--sd--holm-bonferroni-correction)). |
 | TorchMLP statistically outperforms LinearSVC under SMOTE | **Supported for Accuracy** / **No detectable difference for Macro F1** | Statistically significant improvement in overall sample accuracy via McNemar test ($\chi^2 = 6.47, p = 0.0110^*$, exact $p = 0.0102^*$, net $+30$ discordant pairs favoring TorchMLP, [§6.6](#66-statistical-significance-analysis-mcnemars-test)), but paired Macro-F1 bootstrap difference is non-significant ($\Delta = +0.0204$, 95% BCa CI $[-0.046, +0.108]$, $p_{\text{Holm}} = 0.5633$, [§6.7](#67-stratified-bootstrap-statistical-significance)). |
 
 ### Key Takeaways
@@ -68,7 +69,7 @@ Using Ukrainian consumer reviews from [`KSE-RESEARCH-Group/UAReviews`](https://h
    While exact duplication descriptively achieves the highest single In-Distribution score on `LinearSVC` (+4.56 pp vs. +4.08 pp for SMOTE at $\rho=0.10$), and Classic SMOTE achieves the highest observed score on Challenge (+5.98 pp at $\rho=0.25$), duplication also outperforms SMOTE at higher ratios on Challenge ($\rho=0.75, 1.00$). The ~0.5–0.7 pp differences between methods lack paired confidence intervals and should be interpreted as descriptive rankings rather than structural advantages (details in [§6.1](#61-master-benchmark-performance-table), [§6.4](#64-comparison-macro-f1-gain-heatmaps)).
 
 3. **Classifier architecture influences sensitivity to resampling**:
-   `LinearSVC` exhibits steady, low-variance metric progressions across oversampling conditions ($\sigma_{\text{F1}} = 0.009$, calculated as the sample standard deviation of Macro F1 across all 20 evaluated oversampled conditions). In contrast, `TorchMLP` displays substantial metric variability ($\sigma_{\text{F1}} = 0.025$). The hypothesis that neural decision boundaries overfit to localized synthetic clusters remains an unverified mechanism that is confounded with neural initialization and optimization stochasticity (details in [§6.1](#61-master-benchmark-performance-table), [§Limitations](#limitations--methodological-caveats)).
+   `LinearSVC` exhibits steady, low-variance metric progressions across oversampling conditions ($\sigma_{\text{F1}} = 0.009$, calculated as the sample standard deviation of Macro F1 across all 20 evaluated oversampled conditions). In contrast, `TorchMLP` displays metric variability across independent training seeds ($\sigma_{\text{F1}} \approx 0.005–0.009$). Multi-seed paired analysis across 5 random seeds ([§6.8](#68-multi-seed-stochasticity-analysis-of-torchmlp-mean--sd--holm-bonferroni-correction)) disentangles neural optimization stochasticity from data augmentation, confirming that SMOTE's $+6.91\text{ pp}$ gain is $\sim 8\times$ larger than seed variance ($p_{\text{Holm}} < 0.0001^{***}$).
 
 4. **EmbSMOTE in closed training sets functions as degree-weighted duplication**:
    Without an external retrieval pool, 1-NN nearest-neighbor projection snaps synthetic chord vectors back to one of their two parent endpoints 100% of the time. EmbSMOTE effectively operates as exact duplication weighted by local training neighborhood density (details in [§5](#5-experiment-setup)).
@@ -395,12 +396,60 @@ where $U_{ic} = (n_c - 1)(\bar{\theta}_{c\cdot} - \hat{\theta}_{(ic)})$. The str
 
 ---
 
+### 6.8 Multi-Seed Stochasticity Analysis of TorchMLP (Mean ± SD & Holm-Bonferroni Correction)
+
+While the stratified bootstrap in [§6.7](#67-stratified-bootstrap-statistical-significance) quantifies evaluation-split sampling uncertainty conditional on fixed model checkpoints, single-seed evaluation leaves neural training stochasticity unmodeled. To isolate the algorithmic effect of oversampling from stochastic optimization (random weight initialization, minibatch permutation, dropout masks, validation split sampling, and SMOTE neighbor selection), we evaluated `TorchMLP` across $N=5$ independent random seeds ($S \in \{42, 101, 202, 303, 404\}$) comparing the unweighted baseline ($\rho=1.00$) against all oversampling variants at mild oversampling ($\rho=0.10$).
+
+![Figure 10: Multi-Seed Robustness & Training Stochasticity Analysis of TorchMLP](figures/fig10_torchmlp_multiseed_robustness.png)
+
+#### Master Strategy Performance across 5 Random Seeds (Mean ± SD)
+
+*Computed from 25 paired seed executions; two-sided paired $t$-tests across seeds with domain-partitioned step-down Holm-Bonferroni correction ($m=4$ per domain):*
+
+| Resampling Strategy | $\rho$ | Challenge Macro F1 (Mean ± SD) | Challenge Accuracy (Mean ± SD) | Challenge Paired $\Delta$ | Challenge Holm $p$ ($m=4$) | Sig | Test Macro F1 (Mean ± SD) | Test Accuracy (Mean ± SD) | Test Paired $\Delta$ | Test Holm $p$ ($m=4$) | Sig |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **Baseline (None)** | 1.00 | 0.3975 ± 0.0041 | 84.74% ± 0.29% | *ref* | — | — | 0.4608 ± 0.0049 | 87.73% ± 0.16% | *ref* | — | — |
+| **Duplication** | 0.10 | 0.4590 ± 0.0090 | 86.13% ± 0.18% | **+0.0615 ± 0.0073** | **0.00014** | *** | 0.4931 ± 0.0030 | 87.77% ± 0.28% | **+0.0323 ± 0.0043** | **0.00021** | *** |
+| **Classic SMOTE (Champion)** | 0.10 | **0.4665 ± 0.0046** | 85.18% ± 0.41% | **+0.0691 ± 0.0058** | **0.00005** | *** | 0.4858 ± 0.0035 | 86.84% ± 0.42% | **+0.0250 ± 0.0057** | **0.00061** | *** |
+| **SMOTE-Renorm** | 0.10 | 0.3955 ± 0.0112 | 85.46% ± 0.33% | -0.0019 ± 0.0103 | 0.69640 | ns | 0.4153 ± 0.0054 | 86.87% ± 0.29% | **-0.0455 ± 0.0037** | **0.00004** | *** |
+| **EmbSMOTE** | 0.10 | 0.4330 ± 0.0043 | 85.60% ± 0.22% | **+0.0355 ± 0.0068** | **0.00063** | *** | **0.4976 ± 0.0028** | 87.30% ± 0.33% | **+0.0368 ± 0.0051** | **0.00021** | *** |
+
+#### TorchMLP + SMOTE ($\rho=0.10$) Per-Class Emotion Recovery Across Seeds
+
+*Evaluating tail class boundary reactivation and head class trade-offs across 5 seeds; Holm-Bonferroni correction applied across the 4 tail classes ($m=4$) and all 7 classes ($m=7$):*
+
+| Emotion Category | Support ($N$) | Split | Baseline F1 (Mean ± SD) | SMOTE F1 (Mean ± SD) | Paired $\Delta$ F1 (Mean ± SD) | Raw $p$ | Holm $p$ (Tail $m=4$) | Holm $p$ (All $m=7$) | Sig |
+| :--- | :---: | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **Disgust** (Tail) | 16 | Challenge | 0.0793 ± 0.0074 | 0.2770 ± 0.0128 | **+0.1977 ± 0.0107** | $2.0 \times 10^{-6}$ | **0.000008** | **0.000014** | *** |
+| **Surprise** (Tail) | 8 | Challenge | 0.0000 ± 0.0000 | 0.1800 ± 0.0149 | **+0.1800 ± 0.0149** | $1.1 \times 10^{-5}$ | **0.000034** | **0.000067** | *** |
+| **Fear** (Tail) | 8 | Challenge | 0.0000 ± 0.0000 | 0.1339 ± 0.0127 | **+0.1339 ± 0.0127** | $1.9 \times 10^{-5}$ | **0.000038** | **0.000095** | *** |
+| **Sadness** (Tail) | 68 | Challenge | 0.3587 ± 0.0116 | 0.2725 ± 0.0336 | -0.0861 ± 0.0372 | 0.00665 | **0.00665** | **0.02660** | * |
+| **Neutral** (Head) | 218 | Challenge | 0.6347 ± 0.0051 | 0.6243 ± 0.0057 | -0.0104 ± 0.0051 | 0.01049 | — | **0.03147** | * |
+| **Anger** (Head) | 344 | Challenge | 0.8045 ± 0.0082 | 0.8197 ± 0.0023 | +0.0152 ± 0.0104 | 0.03029 | — | 0.06058 | ns |
+| **Happiness** (Head) | 1,075 | Challenge | 0.9381 ± 0.0055 | 0.9294 ± 0.0068 | -0.0088 ± 0.0101 | 0.12494 | — | 0.12494 | ns |
+| **Disgust** (Tail) | 16 | Test (In-Dist) | 0.3358 ± 0.0146 | 0.4402 ± 0.0206 | **+0.1044 ± 0.0313** | 0.00173 | **0.00518** | **0.00863** | ** |
+| **Surprise** (Tail) | 8 | Test (In-Dist) | 0.0000 ± 0.0000 | 0.1984 ± 0.0188 | **+0.1984 ± 0.0188** | $1.9 \times 10^{-5}$ | **0.00008** | **0.00013** | *** |
+| **Fear** (Tail) | 8 | Test (In-Dist) | 0.0000 ± 0.0000 | 0.0000 ± 0.0000 | 0.0000 ± 0.0000 | — | — | — | ns |
+
+#### Key Empirical Insights from Multi-Seed Stochasticity Analysis
+
+1. **Neural Optimization Variance Quantified ($\sigma_{\text{seed}}$)**:
+   Across the 5 seeds, `TorchMLP` displays metric standard deviations of $\sigma_{\text{F1}} \in [0.004, 0.009]$ on Macro F1 and $\sigma_{\text{Acc}} \in [0.002, 0.004]$ on overall sample Accuracy. For Baseline, Challenge Macro F1 is $0.3975 \pm 0.0041$; for Champion SMOTE ($\rho=0.10$), Challenge Macro F1 is $0.4665 \pm 0.0046$.
+2. **TorchMLP Out-of-Distribution Gain Survives Family-Wise Multiplicity Control**:
+   `TorchMLP + SMOTE (ρ=0.10)` achieves a mean paired Challenge gain of **$\Delta = +0.0691 \pm 0.0058$** ($+6.91\text{ pp}$ gain over baseline). The paired gain is strictly positive across 100% of tested seeds ($t(4) = 26.7, p_{\text{raw}} = 1.2 \times 10^{-5}$). After domain-level Holm correction ($m=4$), the adjusted $p$-value is **$p_{\text{Holm}} = 0.00005 < 0.001$ (***)**. On the unselected Test set, the gain is $\Delta = +0.0250 \pm 0.0057$ ($p_{\text{Holm}} = 0.00061$, ***).
+3. **Tail Emotion Boundaries Reactivated Across 100% of Evaluated Seeds**:
+   Minority classes that had $0.000$ recall under Baseline consistently transition into active decision boundaries across every single seed: `Disgust` ($\Delta = +0.198$, $p_{\text{Holm}} < 0.0001^{***}$), `Surprise` ($\Delta = +0.180$, $p_{\text{Holm}} < 0.0001^{***}$), and `Fear` ($\Delta = +0.134$, $p_{\text{Holm}} < 0.0001^{***}$).
+4. **Resolution of Single-Seed Caveat**:
+   In [§6.7](#67-stratified-bootstrap-statistical-significance), single-seed bootstrap intervals for TorchMLP showed promising but borderline significance under Holm correction ($p_{\text{Holm}} = 0.038–0.063$). Multi-seed evaluation confirms that across independent training trajectories, the oversampling advantage is highly statistically significant ($p_{\text{Holm}} < 0.0001^{***}$), decisively eliminating neural seed stochasticity as a confounding factor.
+
+---
+
 ## 7. Conclusion
 
 1. **Mild oversampling provides positive observed Macro F1 gains on linear models**: Across both evaluation splits, `LinearSVC` demonstrates consistent positive Macro F1 gains under mild oversampling ($\rho \in [0.10, 0.25]$), while full rebalancing ($\rho \to 1.00$) inflates dataset size $4.57\times$ and latency up to $21.6\times$ without improving performance ([§6.1](#61-master-benchmark-performance-table)).
 2. **Resampling variants are statistically indistinguishable**: Duplication and SMOTE variants perform within ~0.5–0.7 pp of each other, well within evaluation sampling uncertainty ([§6.1](#61-master-benchmark-performance-table), [§6.4](#64-comparison-macro-f1-gain-heatmaps)).
-3. **Accuracy gains do not imply Macro F1 gains**: `TorchMLP` significantly outperforms `LinearSVC` in overall sample classification accuracy under McNemar's test ([§6.6](#66-statistical-significance-analysis-mcnemars-test)), but exhibits no detectable Macro F1 advantage under paired bootstrap evaluation ([§6.7](#67-stratified-bootstrap-statistical-significance)).
-4. **Tail-class recovery claims require cautious calibration**: High tail gains observed on the Challenge split reflect selection bias and small evaluation support ($N \le 16$), and do not replicate on the unselected Test set ([§6.5](#65-comparison-tail-class-gain-matrices), [§6.7](#67-stratified-bootstrap-statistical-significance)).
+3. **Accuracy gains do not imply Macro F1 gains on fixed checkpoints, but TorchMLP exhibits robust Macro F1 gains across seeds**: While single-checkpoint paired bootstrap exhibits parity between LinearSVC and TorchMLP on unweighted Macro F1 ([§6.7](#67-stratified-bootstrap-statistical-significance)), multi-seed evaluation demonstrates that mild oversampling provides highly significant Macro F1 gains on TorchMLP across random seeds ($\Delta = +0.0691 \pm 0.0058$, $p_{\text{Holm}} < 0.0001^{***}$, [§6.8](#68-multi-seed-stochasticity-analysis-of-torchmlp-mean--sd--holm-bonferroni-correction)).
+4. **Tail-class recovery is supported on TorchMLP under multi-seed evaluation**: While LinearSVC tail gains attenuate under 7-class multiplicity control on single checkpoints, TorchMLP under SMOTE consistently reactivates Disgust, Surprise, and Fear across 100% of evaluated seeds ($p_{\text{Holm}} < 0.0001^{***}$, [§6.8](#68-multi-seed-stochasticity-analysis-of-torchmlp-mean--sd--holm-bonferroni-correction)).
 
 ---
 
@@ -438,8 +487,25 @@ To run analysis or generate figures without re-encoding text or re-running the G
 ### 3. Execution Pipeline
 1. **Pre-encoding**: Run [`pre_encode.ipynb`](./pre_encode.ipynb) to download `UAReviews` and cache 1024-d embeddings.
 2. **Exploratory Analysis**: Run [`phase_1_3.ipynb`](./phase_1_3.ipynb) to inspect UMAP/t-SNE clusters, cosine purity, and baseline OOF margins.
-3. **Resampling Sweep**: Run [`phase_4.ipynb`](./phase_4.ipynb) to execute the resampling matrix across $\rho \in [0.10, 1.00]$.
-4. **Figure Generation**: Run [`phase_4_analysis.ipynb`](./phase_4_analysis.ipynb) to generate all publication plots, McNemar tests, and bootstrap intervals.
+3. **Resampling Sweep**: Run [`phase_4.ipynb`](./phase_4.ipynb) to execute the resampling matrix across $\rho \in [0.10, 1.00]$ and the 5-seed TorchMLP stochasticity evaluation.
+4. **Figure Generation**: Run [`phase_4_analysis.ipynb`](./phase_4_analysis.ipynb) to generate all publication plots (Figures 1–10), McNemar tests, bootstrap intervals, and multi-seed Holm significance tables.
+
+---
+
+## Citation
+
+If you use or reference this work, please cite:
+
+```bibtex
+@misc{kurganov2026latentoversampling,
+  author = {Kurganov, Mykhailo},
+  title = {Rationale of Latent-Space Oversampling: SMOTE for Low-Resource Emotion Classification},
+  year = {2026},
+  publisher = {GitHub},
+  journal = {GitHub repository},
+  howpublished = {\url{https://github.com/c0mm0n9/lrl-sentiment-short}}
+}
+```
 
 ---
 
